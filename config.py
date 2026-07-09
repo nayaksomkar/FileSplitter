@@ -58,6 +58,7 @@ def resolve_settings(config: dict, args: object) -> dict:
         "video_exts": config.get("video_exts"),
         "ffmpeg_url": config.get("ffmpeg_url"),
         "quiet": config.get("quiet", True),
+        "delete_after": config.get("delete_after", False),
     }
 
     # Support human-friendly GB notation in config.json

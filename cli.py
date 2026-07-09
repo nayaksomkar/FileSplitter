@@ -10,11 +10,52 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 
 from config import load_config, resolve_settings
 from discovery import MIN_SPLIT_SIZE, discover_large_videos
 from ffmpeg import ensure_ffmpeg
 from splitter import split_video
+
+
+def fmt_size(bytes_val: int) -> str:
+    """Format bytes into human-readable string."""
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if bytes_val < 1024:
+            return f"{bytes_val:.2f} {unit}"
+        bytes_val /= 1024
+    return f"{bytes_val:.2f} PB"
+
+
+def fmt_time(seconds: float) -> str:
+    """Format seconds into mm:ss."""
+    m, s = divmod(int(seconds), 60)
+    return f"{m:02d}:{s:02d}"
+
+
+def progress_bar(current: int, total: int, bar_width: int = 30) -> str:
+    """Render a text progress bar with percentage."""
+    if total == 0:
+        return "[Error: total is zero]"
+    fraction = current / total
+    filled = int(bar_width * fraction)
+    bar = "█" * filled + "░" * (bar_width - filled)
+    pct = fraction * 100
+    return f"|{bar}| {pct:5.1f}%"
+
+
+def print_header(title: str) -> None:
+    """Print a section header with decorative border."""
+    width = 60
+    print("╔" + "═" * (width - 2) + "╗")
+    padding = (width - 2 - len(title)) // 2
+    print("║" + " " * padding + title + " " * (width - 2 - len(title) - padding) + "║")
+    print("╚" + "═" * (width - 2) + "╝")
+
+
+def print_step(step: int, total: int, message: str) -> None:
+    """Print a step indicator."""
+    print(f"  └─ [{step}/{total}] {message}")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -57,50 +98,73 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     """Entry point: load config, find large videos, split them."""
-    args = parse_args(argv)
+    overall_start = time.time()
 
-    # Load config from file (CLI --config overrides the default path)
+    print_header("FileSplitter v0.1.0")
+
+    args = parse_args(argv)
     config = load_config(args.config)
-    # Merge config.json values with CLI args (CLI args take precedence)
     settings = resolve_settings(config, args)
 
-    # Determine the target folder
     folder = settings.get("folder") or os.getcwd()
     if not os.path.isdir(folder):
-        print(f"Error: folder not found: {folder}", file=sys.stderr)
+        print(f"\n  ✗ Error: folder not found: {folder}")
         return 1
 
-    # Normalize video extensions to lowercase set for fast lookup
+    print(f"\n  📁 Folder: {folder}")
+    print(f"  📐 Min size: {fmt_size(settings.get('min_size') or 0)}")
+    if settings.get("max_part_size"):
+        print(f"  ✂️  Max part: {fmt_size(settings['max_part_size'])}")
+    else:
+        print(f"  ✂️  Split: 2 equal halves")
+    if settings.get("quiet"):
+        print(f"  🔇 Quiet mode: on")
+    if settings.get("delete_after"):
+        print(f"  ⚠️  Delete originals: YES")
+    print()
+
     video_exts = (
         set(e.lower() for e in settings["video_exts"])
         if settings.get("video_exts")
         else None
     )
 
-    # Ensure FFmpeg is available (auto-download if missing)
+    print("  🔍 Checking for FFmpeg...", end=" ", flush=True)
     ffmpeg, ffprobe = ensure_ffmpeg(url=settings.get("ffmpeg_url"))
+    print("✓")
 
-    # Scan for videos larger than the threshold
+    print("  📡 Scanning for large videos...", end=" ", flush=True)
     large_videos = discover_large_videos(
         folder,
-        min_size=settings.get("min_size") or MIN_SPLIT_SIZE,
+        min_size=settings.get("min_size") or 0,
         video_exts=video_exts,
     )
+    print(f"found {len(large_videos)} file(s)\n")
 
     if not large_videos:
-        print("No videos above the size threshold found in this folder.")
+        print("  ✓ No videos to split.")
+        elapsed = time.time() - overall_start
+        print(f"\n  ⏱  Total time: {fmt_time(elapsed)}")
         return 0
 
-    # Split each large video into parts
-    for path, size in large_videos:
+    total_files = len(large_videos)
+    for file_idx, (path, size) in enumerate(large_videos, 1):
+        base_name = os.path.basename(path)
+        print_header(f"File {file_idx}/{total_files}: {base_name}")
+        print(f"  Size: {fmt_size(size)}")
+
         split_video(
             ffmpeg,
             ffprobe,
             path,
             size,
             max_part_size=settings.get("max_part_size"),
+            delete_after=settings.get("delete_after", False),
         )
 
+    elapsed = time.time() - overall_start
+    print_header("Complete")
+    print(f"\n  ✅ All done! Time elapsed: {fmt_time(elapsed)}\n")
     return 0
 
 

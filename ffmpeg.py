@@ -3,7 +3,7 @@
 On first run the tool checks:
   1. System PATH for ffmpeg/ffprobe
   2. Local ./ffmpeg_auto/ folder
-  3. Downloads FFmpeg automatically (Windows zip from gyan.dev)
+  3. Downloads FFmpeg automatically with progress bar (Windows zip from gyan.dev)
 """
 
 from __future__ import annotations
@@ -15,8 +15,25 @@ import subprocess
 import urllib.request
 import zipfile
 
-# Official Windows static build used for the auto-installer.
+
 FFMPEG_WINDOWS_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+
+
+class DownloadProgress:
+    """Reports download progress with a text progress bar."""
+
+    def __init__(self) -> None:
+        self.last_pct = -1
+
+    def __call__(self, block_count: int, block_size: int, total_size: int) -> None:
+        downloaded = block_count * block_size
+        if total_size > 0:
+            pct = min(100, int(downloaded * 100 / total_size))
+            if pct != self.last_pct:
+                self.last_pct = pct
+                filled = pct // 2
+                bar = "█" * filled + "░" * (50 - filled)
+                print(f"\r  Downloading: |{bar}| {pct}% ({downloaded // 1024 // 1024} MB)", end="", flush=True)
 
 
 def ffmpeg_folder() -> str:
@@ -48,14 +65,14 @@ def download_ffmpeg_windows(folder: str, url: str = FFMPEG_WINDOWS_URL) -> None:
     os.makedirs(folder, exist_ok=True)
     zip_path = os.path.join(folder, "ffmpeg.zip")
 
-    print("Downloading FFmpeg (100+ MB)...")
-    urllib.request.urlretrieve(url, zip_path)
-    print("Download complete. Extracting...")
+    print("\n  Downloading FFmpeg (~130 MB)...")
+    progress = DownloadProgress()
+    urllib.request.urlretrieve(url, zip_path, reporthook=progress)
+    print("\n  Extracting...", end=" ", flush=True)
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         zip_ref.extractall(folder)
 
-    # The zip extracts into a subfolder; move contents up one level
     extracted = None
     for name in os.listdir(folder):
         if name.startswith("ffmpeg") and os.path.isdir(os.path.join(folder, name)):
@@ -68,23 +85,20 @@ def download_ffmpeg_windows(folder: str, url: str = FFMPEG_WINDOWS_URL) -> None:
         shutil.rmtree(extracted)
 
     os.remove(zip_path)
-    print("FFmpeg ready.\n")
+    print("✓")
 
 
 def ensure_ffmpeg(url: str = FFMPEG_WINDOWS_URL) -> tuple[str, str]:
     """Return (ffmpeg, ffprobe) paths, downloading FFmpeg if necessary."""
-    # 1. Check system PATH
     system_ffmpeg, system_ffprobe = find_system_ffmpeg()
     if system_ffmpeg and system_ffprobe:
         return system_ffmpeg, system_ffprobe
 
-    # 2. Check local auto-download folder
     ffmpeg_path, ffprobe_path = local_ffmpeg_paths()
     if os.path.exists(ffmpeg_path) and os.path.exists(ffprobe_path):
         return ffmpeg_path, ffprobe_path
 
-    # 3. Download fresh copy
-    print("FFmpeg not found. Downloading automatically...")
+    print("  ⬇️  FFmpeg not found. Downloading automatically...")
     download_ffmpeg_windows(ffmpeg_folder(), url)
     return ffmpeg_path, ffprobe_path
 
