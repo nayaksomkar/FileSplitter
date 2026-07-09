@@ -1,6 +1,6 @@
 # FileSplitter
 
-Split large video files into smaller parts using FFmpeg — fast, lossless, no re-encoding.
+A video file splitter. Scans a folder for large video files and cuts each into smaller parts using FFmpeg (stream copy — fast, lossless, no re-encoding). Original files are untouched.
 
 ---
 
