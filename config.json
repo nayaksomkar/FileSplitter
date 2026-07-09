@@ -1,0 +1,8 @@
+{
+  "folder": ".",
+  "min_size_gb": 1.90,
+  "max_part_size_gb": 1.80,
+  "video_exts": [".mp4", ".mkv", ".mov", ".avi", ".flv", ".wmv", ".webm"],
+  "ffmpeg_url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+  "quiet": true
+}

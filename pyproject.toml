@@ -1,0 +1,20 @@
+[project]
+name = "filesplitter"
+version = "0.1.0"
+description = "Split large video files into smaller parts using FFmpeg."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+filesplitter = "cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = ["*.py"]
+
+[dependency-groups]
+dev = ["pyinstaller>=6.0"]

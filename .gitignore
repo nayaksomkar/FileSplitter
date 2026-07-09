@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info/
+src/*.egg-info
+
+# Virtual environments
+.venv/
+
+# Auto-downloaded FFmpeg binaries
+ffmpeg_auto/
+
+# PyInstaller build artifacts
+build/
+dist/
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor / OS files
+.idea/
+.vscode/
+.DS_Store
