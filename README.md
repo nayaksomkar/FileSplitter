@@ -15,18 +15,20 @@ YourFolder/
 └── README.md         ← this file (keep for reference)
 ```
 
-**Step 2** — Open `config.json` in any text editor and set the folder that has your videos:
+**Step 2** — Open `config.json` in any text editor and change `"folder"` to your video path:
 
 ```json
 {
-  "folder": "C:/Users/You/Videos",
+  "folder": ".",
   "min_size_gb": 1.90,
-  "max_part_size_gb": 1.80
+  "max_part_size_gb": 1.80,
+  "video_exts": [".mp4", ".mkv", ".mov", ".avi", ".flv", ".wmv", ".webm"],
+  "ffmpeg_url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+  "quiet": true
 }
 ```
 
-- Set `"folder"` to the path where your big video files are
-- Or use `"."` if you put the exe in the same folder as the videos
+- Set `"folder"` to your video path (e.g. `"C:/Users/You/Videos"`) or leave `"."` if the exe is in the same folder as the videos
 
 **Step 3** — Run it:
 - **Windows:** double-click `filesplitter.exe`
@@ -42,7 +44,7 @@ FFmpeg downloads automatically on first run. That's it.
 |---|---|---|
 | `folder` | `"."` | Path to folder with videos (`"."` = same folder as exe) |
 | `min_size_gb` | `1.90` | Only split files **bigger** than this (GB) |
-| `max_part_size_gb` | `1.80` | Max size of each output part (GB) |
+| `max_part_size_gb` | `1.80` | Max size per output part (GB). Set to `null` or remove the field entirely to split into 2 equal halves regardless of size |
 | `video_exts` | `.mp4 .mkv .mov .avi .flv .wmv .webm` | Which file types to scan |
 | `quiet` | `true` | `false` = show full FFmpeg output |
 

@@ -2,6 +2,8 @@
 
 Splits a video into N equal-duration parts using stream copy (-c copy),
 so no re-encoding happens — fast and lossless.
+
+When max_part_size is None, the video is split into 2 equal halves.
 """
 
 from __future__ import annotations
@@ -11,7 +13,6 @@ import os
 import subprocess
 
 from ffmpeg import run_ffmpeg
-from discovery import MAX_PART_SIZE
 
 
 def get_duration(ffprobe: str, filepath: str) -> float:
@@ -38,22 +39,26 @@ def split_video(
     ffprobe: str,
     filepath: str,
     file_size: int,
-    max_part_size: int = MAX_PART_SIZE,
+    max_part_size: int | None = None,
 ) -> list[str]:
-    """Split ``filepath`` into parts no larger than ``max_part_size``.
+    """Split ``filepath`` into parts.
 
-    Calculates the number of parts needed, then uses ffmpeg -ss/-t -c copy
-    to extract each segment. Original file is left untouched.
+    If ``max_part_size`` is given, calculates parts needed to keep each
+    under that size.  If None, splits into 2 equal halves.
 
     Returns the list of created part file paths.
     """
-    num_parts = max(1, math.ceil(file_size / max_part_size))
+    # Determine number of parts
+    if max_part_size is not None:
+        num_parts = max(1, math.ceil(file_size / max_part_size))
+    else:
+        num_parts = 2
 
     folder = os.path.dirname(filepath)
     base_name = os.path.basename(filepath)
     name, ext = os.path.splitext(base_name)
 
-    print(f"Splitting {base_name} into {num_parts} part(s)...")
+    print(f"Splitting {base_name} into {num_parts} equal part(s)...")
     duration = get_duration(ffprobe, filepath)
     part_duration = duration / num_parts
 
