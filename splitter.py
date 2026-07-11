@@ -33,7 +33,7 @@ def _fmt_size(b: int) -> str:
     for u in ("B", "KB", "MB", "GB"):
         if b < 1024:
             return f"{b:.1f} {u}"
-        b //= 1024
+        b /= 1024
     return f"{b:.1f} TB"
 
 
